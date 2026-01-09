@@ -26,16 +26,27 @@ export const ResumeDocument = () => {
 
   const isStylingHighlighted = useHighlight('styling');
 
-  const layoutClasses = {
-    traditional: 'max-w-3xl mx-auto p-8',
-    modern: 'max-w-4xl mx-auto p-10 bg-gradient-to-br from-white to-gray-50',
-    minimal: 'max-w-2xl mx-auto p-4',
+  const getLayoutClasses = () => {
+    const isCompact = styling.spacing === 'compact';
+    return {
+      traditional: isCompact ? 'max-w-5xl mx-auto px-12 py-4' : 'max-w-3xl mx-auto p-8',
+      modern: isCompact ? 'max-w-6xl mx-auto px-12 py-4 bg-gradient-to-br from-white to-gray-50' : 'max-w-4xl mx-auto p-10 bg-gradient-to-br from-white to-gray-50',
+      minimal: isCompact ? 'max-w-5xl mx-auto px-12 py-4' : 'max-w-2xl mx-auto p-4',
+    };
   };
 
+  const layoutClasses = getLayoutClasses();
+
   const spacingClasses = {
-    compact: 'space-y-2',
+    compact: 'space-y-0.5',
     normal: 'space-y-4',
     relaxed: 'space-y-6',
+  };
+
+  const sectionMarginClasses = {
+    compact: 'mb-1',
+    normal: 'mb-6',
+    relaxed: 'mb-8',
   };
 
   const resumeStyle = {
@@ -49,7 +60,7 @@ export const ResumeDocument = () => {
   } as React.CSSProperties;
 
   const sectionTitleClasses = {
-    compact: 'text-xl font-bold mb-2 pb-1 border-b-2',
+    compact: 'text-base font-bold mb-0.5 pb-0.5 border-b',
     normal: 'text-2xl font-bold mb-3 pb-2 border-b-2',
     relaxed: 'text-2xl font-bold mb-4 pb-2 border-b-2',
   };
@@ -80,7 +91,7 @@ export const ResumeDocument = () => {
         case 'experience':
           if (experience.length === 0) return null;
           return (
-            <section className="mb-6">
+            <section className={sectionMarginClasses[styling.spacing]}>
               <SectionTitle>Experience</SectionTitle>
               <div className={spacingClasses[styling.spacing]}>
                 {experience.map((exp) => (
@@ -93,7 +104,7 @@ export const ResumeDocument = () => {
         case 'education':
           if (education.length === 0) return null;
           return (
-            <section className="mb-6">
+            <section className={sectionMarginClasses[styling.spacing]}>
               <SectionTitle>Education</SectionTitle>
               <div className={spacingClasses[styling.spacing]}>
                 {education.map((edu) => (
@@ -106,7 +117,7 @@ export const ResumeDocument = () => {
         case 'skills':
           if (skills.length === 0) return null;
           return (
-            <section className="mb-6">
+            <section className={sectionMarginClasses[styling.spacing]}>
               <SectionTitle>Skills</SectionTitle>
               <SkillsList skills={skills} />
             </section>
@@ -117,7 +128,7 @@ export const ResumeDocument = () => {
           const customSection = customSections.find((s) => s.id === config.customSectionId);
           if (!customSection) return null;
           return (
-            <section className="mb-6">
+            <section className={sectionMarginClasses[styling.spacing]}>
               <SectionTitle>{customSection.title}</SectionTitle>
               <CustomSectionRenderer section={customSection} />
             </section>

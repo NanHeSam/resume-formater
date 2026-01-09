@@ -16,6 +16,14 @@ export const ChatInput = () => {
   const { addMessage, setLoading, isLoading, messages } = useChatStore();
   const resumeStore = useResumeStore();
 
+  const getCurrentResumeHtml = (maxChars = 20000): string | null => {
+    const el = document.getElementById('resume-document');
+    if (!el) return null;
+    const html = el.innerHTML || '';
+    if (html.length <= maxChars) return html;
+    return `${html.slice(0, maxChars)}\n<!-- TRUNCATED: ${html.length - maxChars} chars omitted -->`;
+  };
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -246,17 +254,67 @@ export const ChatInput = () => {
             content: userMessage
           };
 
+      const resumeData = {
+        personalInfo: resumeStore.personalInfo,
+        experience: resumeStore.experience,
+        education: resumeStore.education,
+        skills: resumeStore.skills,
+        customSections: resumeStore.customSections,
+      };
+
+      const currentRenderedHtml = getCurrentResumeHtml();
+
+      const developerMessages: Array<{ role: 'developer'; content: string }> = [
+        { role: 'developer', content: RESUME_SYSTEM_PROMPT },
+        { role: 'developer', content: `Current Structured Resume Data: ${JSON.stringify(resumeData)}` },
+      ];
+
+      if (resumeStore.customHtmlMode && resumeStore.customHtml) {
+        developerMessages.push({
+          role: 'developer',
+          content: `Current Custom HTML (in use): ${resumeStore.customHtml}`
+        });
+      }
+
+      if (currentRenderedHtml) {
+        developerMessages.push({
+          role: 'developer',
+          content: `Current Rendered Resume HTML (from #resume-document innerHTML): ${currentRenderedHtml}`
+        });
+      }
+
       // @ts-ignore - GPT-5.2 reasoning_effort parameter not yet in SDK types
       const response = await client.chat.completions.create({
         model: 'gpt-5.2',
         messages: [
-          { role: 'developer', content: RESUME_SYSTEM_PROMPT },
+          ...developerMessages,
           ...chatMessages,
           currentMessage,
         ],
         response_format: { type: 'json_object' },
         reasoning_effort: 'low',
       });
+
+      // Log token usage and estimated cost
+      if (response.usage) {
+        const { prompt_tokens, completion_tokens, total_tokens } = response.usage;
+        // Estimated pricing for gpt-5.2 (using placeholder high-end prices)
+        // $10 per 1M prompt tokens, $30 per 1M completion tokens
+        const promptCost = (prompt_tokens / 1_000_000) * 10;
+        const completionCost = (completion_tokens / 1_000_000) * 30;
+        const totalCost = promptCost + completionCost;
+
+        console.log(
+          `%cOpenAI Usage:%c ${total_tokens} tokens (%c${prompt_tokens} prompt%c, %c${completion_tokens} completion%c) | %cEstimated Cost: $${totalCost.toFixed(4)}`,
+          'color: #3b82f6; font-weight: bold',
+          'color: inherit',
+          'color: #6366f1',
+          'color: inherit',
+          'color: #ec4899',
+          'color: inherit',
+          'color: #10b981; font-weight: bold'
+        );
+      }
 
       const content = response.choices[0].message.content;
       if (!content) {
